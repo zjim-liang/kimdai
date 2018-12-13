@@ -57,6 +57,51 @@ CheckSep <- function(x, priority = c(";", ",", "\\|"), default = "\t") {
     v
 }
 
+#' Get the value for the given keys.
+#' @param x A vector of keys.
+#' @param dict A vector, a list, or an environment storing the information.
+#' @param fill What to return when a key was not found in the dict.
+Translate <- function(x, dict, fill = "asis",
+                      ignore.case = TRUE, upper = TRUE, warning = TRUE)
+{   
+    if (!length(fill)) fill <- character(1)
+    if (ignore.case) {
+        if (is.environment(dict)) {
+            if (warning) WriteLog("Cannot casefold the names in an environment!",
+                                   func.name = match.call()[[1]], level = "warn")
+        } else {
+            names(dict) <- casefold(names(dict), upper = upper)
+        }
+    }
+    Key2Value <- function(one.element) {
+        one.element <- as.character(one.element)
+        if (!length(one.element) || !nchar(one.element)) return(character(1))
+        if (ignore.case) {
+            key <- casefold(one.element, upper = upper)
+        } else {
+            key <- one.element
+        }
+        if (is.environment(dict) || is.list(dict)) {
+            if (length(dict[[key]])) {
+                dict[[key]]
+            } else {
+                if (fill == "asis") one.element else fill
+            }
+        } else if (is.vector(dict)) {
+            if (key %in% dict) {
+                dict[key]
+            } else {
+                if (fill == "asis") one.element else fill
+            }
+        } else {
+            WriteLog("The dict must be an env, a list, or a vector!",
+                     func.name = "Translate", level = "error")
+        }
+    }
+    sapply(x, Key2Value)
+}
+
+
 #' Print messages, warnings, or errors in a unified format.
 #' The messages will be written to STDOUT.
 #' And the warnings and the errors will be written to STDERR.
